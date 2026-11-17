@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/minio/minio-go/v7"
@@ -87,12 +88,13 @@ func TestNewOBSLockByEndpointWrappers(t *testing.T) {
 	endpoint, accessKey, secretKey, bucket := testOBSConfig(t)
 	ctx := context.Background()
 
-	// 用 127.0.0.1 与 localhost 写法区分缓存 key，并带上 Region，覆盖 Region 分支
+	// 用 127.0.0.1 与 localhost 两种写法区分缓存 key，并带上 Region，覆盖 Region 分支。
+	// 端口沿用真实端点：写死 9012 会连到一个没有服务的地址，工厂必然失败。
 	regionEndpoint := endpoint
-	if regionEndpoint == "localhost:9012" {
-		regionEndpoint = "127.0.0.1:9012"
-	} else {
-		regionEndpoint = "127.0.0.1:9012"
+	if host, ok := strings.CutPrefix(endpoint, "localhost:"); ok {
+		regionEndpoint = "127.0.0.1:" + host
+	} else if host, ok := strings.CutPrefix(endpoint, "127.0.0.1:"); ok {
+		regionEndpoint = "localhost:" + host
 	}
 	config := &EndpointConfig{
 		Endpoint:  regionEndpoint,
